@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+
+# Node
+node_modules/
+frontend/dist/
+*.tsbuildinfo
+
+# Generated icon renders (regenerate with packaging/icon/render_icons.py).
+# grokdeck.svg is the committed source; rendered/ is derived.
+packaging/icon/rendered/
+
+# Packaging output
+packaging/out/
+
+# Local data / logs
+*.db
+*.db-wal
+*.db-shm
+*.log
+
+# Editors / OS
+.DS_Store
+.idea/
+.vscode/
+
+# Never commit credentials or probe output that may contain account details
+.env
+.env.*
+docs/ACP_*.json

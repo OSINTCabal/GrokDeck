@@ -1,0 +1,55 @@
+/*
+ * Grok Bot desktop theme. Neutrals and blue come from that app's palette.
+ *
+ * Imported from index.css right after the katex import. Because index.css
+ * defines html.dark and .theme-cards later in the cascade, the theme tokens
+ * and the 2-column grid use !important so they win once applyTheme puts both
+ * "grokbot" and "dark" on <html>.
+ */
+html.grokbot {
+  color-scheme: dark;
+  --surface-base: #1f1f1f !important;
+  --surface-sidebar: #161616 !important;
+  --fg-primary: #f5f5f5 !important;
+  --fg-secondary: #c1c1c1 !important;
+  --fg-tertiary: #8a8a8a !important;
+  --surface-composer: #121212 !important;
+  --border-composer: rgba(255,255,255,0.08) !important;
+  --surface-user: #121212 !important;
+  --surface-hover: #161616 !important;
+  --surface-l2: #1f1f1f !important;
+  --surface-active: #0e0e0e !important;
+  --popover: #161616 !important;
+  --accent: #1884fc !important;
+  --accent-hover: #4d9bff !important;
+  --on-accent: #f5f5f5 !important;
+  --border-l1: rgba(255,255,255,0.06) !important;
+  --border-l2: rgba(255,255,255,0.12) !important;
+  --menu-shadow: 0 2px 8px oklab(0 0 0 / 0.4) !important;
+  --diff-add: #14c370 !important;
+  --diff-del: #fc2c3e !important;
+}
+
+/* Theme preview swatch — mirrors the .theme-shot .dark structure in index.css. */
+.theme-shot .grokbot {
+  background: #1f1f1f;
+}
+.theme-shot .grokbot::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 34%;
+  background: #161616;
+}
+.theme-shot .grokbot::after {
+  content: "";
+  position: absolute;
+  left: 42%;
+  right: 10%;
+  bottom: 12px;
+  height: 14px;
+  border-radius: 7px;
+  background: #121212;
+}

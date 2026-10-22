@@ -1,0 +1,101 @@
+#!/usr/bin/env bash
+# GrokDeck launcher — ensures the local sidecar is running, then opens the
+# app in a dedicated frameless window. Safe to run repeatedly; it reuses a
+# live sidecar rather than fighting over the port.
+#
+# Installed at ~/.local/bin/grokdeck, so it cannot rely on its own directory to
+# find the app. Resolve the app root first, then do the work.
+set -euo pipefail
+
+PORT="${GROKDECK_PORT:-9488}"
+URL="${GROKDECK_URL:-http://127.0.0.1:${PORT}}"
+
+log() { printf '\033[2m[grokdeck]\033[0m %s\n' "$1" >&2; }
+die() { printf '\033[31m[grokdeck]\033[0m %s\n' "$1" >&2; exit 1; }
+
+# ---- resolve the installed application root -------------------------------
+is_app() { [ -f "$1/sidecar/grokdeck_server.py" ] && [ -d "$1/shell/electron" ]; }
+
+APP_ROOT=""
+for candidate in \
+  "${GROKDECK_HOME:-}" \
+  "${XDG_DATA_HOME:-$HOME/.local/share}/grokdeck" \
+  "$HOME/.local/share/grokdeck"
+do
+  [ -n "$candidate" ] || continue
+  if is_app "$candidate"; then APP_ROOT="$candidate"; break; fi
+done
+
+if [ -z "$APP_ROOT" ]; then
+  die "GrokDeck is not installed. Run packaging/install.sh from the project folder."
+fi
+
+export GROKDECK_HOME="$APP_ROOT"
+mkdir -p "$APP_ROOT/logs"
+
+# The Grok CLI is optional for web chat and API providers, but Build uses it.
+if ! command -v grok >/dev/null 2>&1 && [ -x "$HOME/.local/bin/grok" ]; then
+  export PATH="$HOME/.local/bin:$PATH"
+fi
+
+PY="$APP_ROOT/.venv/bin/python"
+[ -x "$PY" ] || PY="python3"
+
+cd "$APP_ROOT"
+
+# ---- sidecar: reuse if healthy, otherwise start ---------------------------
+STARTED=0
+if curl -fsS "$URL/api/health" >/dev/null 2>&1; then
+  log "reusing sidecar already on $PORT"
+else
+  log "starting sidecar on 127.0.0.1:$PORT (data: $APP_ROOT)"
+  "$PY" -m uvicorn sidecar.grokdeck_server:app \
+    --host 127.0.0.1 --port "$PORT" --log-level warning &
+  SIDECAR_PID=$!
+  echo "$SIDECAR_PID" > "$APP_ROOT/sidecar.pid"
+  STARTED=1
+
+  for _ in $(seq 1 60); do
+    if curl -fsS "$URL/api/health" >/dev/null 2>&1; then break; fi
+    sleep 0.25
+  done
+  if ! curl -fsS "$URL/api/health" >/dev/null 2>&1; then
+    kill "$SIDECAR_PID" 2>/dev/null || true
+    die "sidecar failed to become healthy on $PORT (see $APP_ROOT/logs)"
+  fi
+fi
+
+# Kill only the sidecar this launcher started. Do not exec electron: exec
+# would drop the EXIT trap and leave that sidecar running.
+if [ "$STARTED" = 1 ]; then
+  stop_sidecar() {
+    kill "$SIDECAR_PID" 2>/dev/null || true
+    if [ "$(cat "$APP_ROOT/sidecar.pid" 2>/dev/null || true)" = "$SIDECAR_PID" ]; then
+      rm -f "$APP_ROOT/sidecar.pid"
+    fi
+  }
+  trap stop_sidecar EXIT
+fi
+
+LOCAL_ELECTRON="$APP_ROOT/shell/electron/node_modules/.bin/electron"
+ELECTRON_LOG="$APP_ROOT/logs/electron.log"
+# Native Wayland drops frameless moves. XWayland keeps the window position.
+export ELECTRON_OZONE_PLATFORM_HINT=x11
+run_electron() {
+  mkdir -p "$APP_ROOT/logs"
+  set +e
+  "$@" > >(tee -a "$ELECTRON_LOG") 2>&1
+  code=$?
+  set -e
+  if [ "$code" -ne 0 ]; then
+    log "the window exited ($code). See $ELECTRON_LOG"
+  fi
+  exit "$code"
+}
+if [ -x "$LOCAL_ELECTRON" ]; then
+  run_electron "$LOCAL_ELECTRON" --ozone-platform=x11 --ozone-platform-hint=x11 "$APP_ROOT/shell/electron"
+fi
+if command -v electron >/dev/null 2>&1; then
+  run_electron electron --ozone-platform=x11 --ozone-platform-hint=x11 "$APP_ROOT/shell/electron"
+fi
+die "electron not found. Re-run packaging/install.sh."

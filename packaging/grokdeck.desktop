@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=GrokDeck
+GenericName=Grok desktop client
+Comment=Grok chat, coding agent, Skills and MCP in a local desktop window
+Exec=grokdeck %U
+Icon=grokdeck
+Terminal=false
+Categories=Development;
+Keywords=grok;ai;chat;agent;mcp;skills;assistant;llm;
+StartupNotify=true
+StartupWMClass=grokdeck
