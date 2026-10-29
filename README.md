@@ -4,7 +4,7 @@
 
 Version **1.0.0**.
 
-A Grok desktop app for **Fedora and Debian Linux**. Chat with Grok, work on code through the Grok CLI, and keep your projects in one window. GrokDeck is part of my desktop app series alongside VibeDeck.
+A Grok desktop app for **Fedora and Debian Linux**. Chat with Grok, work on code through the Grok CLI, and keep your projects in one window. GrokDeck is part of my desktop app series alongside [VibeDeck](https://github.com/OSINTCabal/VibeDeck), [KimiDeck](https://github.com/OSINTCabal/KimiDeck), and [MinimaxDeck](https://github.com/OSINTCabal/MinimaxDeck).
 
 [Install](docs/INSTALL.md) · [Development](docs/DEVELOPMENT.md) · [Verification](docs/VERIFICATION.md)
 

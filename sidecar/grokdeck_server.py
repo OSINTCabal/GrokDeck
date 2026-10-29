@@ -127,6 +127,7 @@ def create_app(store: Store | None = None) -> FastAPI:
     def health() -> dict[str, Any]:
         return {
             "ok": True,
+            "app": "grokdeck",
             "version": VERSION,
             "fakeStream": os.environ.get("GROKDECK_FAKE_STREAM") == "1",
             "key": secrets.configured(),

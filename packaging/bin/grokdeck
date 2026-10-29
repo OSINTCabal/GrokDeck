@@ -44,10 +44,41 @@ PY="$APP_ROOT/.venv/bin/python"
 cd "$APP_ROOT"
 
 # ---- sidecar: reuse if healthy, otherwise start ---------------------------
+sidecar_is_healthy() {
+  "$PY" -c '
+import json
+import sys
+from urllib.request import urlopen
+try:
+    with urlopen(sys.argv[1], timeout=2) as response:
+        health = json.load(response)
+except Exception:
+    raise SystemExit(1)
+raise SystemExit(0 if isinstance(health, dict) and health.get("ok") is True and health.get("app") == "grokdeck" else 1)
+' "$URL/api/health"
+}
+
+port_is_available() {
+  "$PY" -c '
+import socket
+import sys
+sock = socket.socket()
+try:
+    sock.bind(("127.0.0.1", int(sys.argv[1])))
+except OSError:
+    raise SystemExit(1)
+finally:
+    sock.close()
+' "$PORT"
+}
+
 STARTED=0
-if curl -fsS "$URL/api/health" >/dev/null 2>&1; then
+if sidecar_is_healthy; then
   log "reusing sidecar already on $PORT"
 else
+  if ! port_is_available; then
+    die "port $PORT is already in use by another application. Stop it or set GROKDECK_PORT to a free local port."
+  fi
   log "starting sidecar on 127.0.0.1:$PORT (data: $APP_ROOT)"
   "$PY" -m uvicorn sidecar.grokdeck_server:app \
     --host 127.0.0.1 --port "$PORT" --log-level warning &
@@ -56,10 +87,10 @@ else
   STARTED=1
 
   for _ in $(seq 1 60); do
-    if curl -fsS "$URL/api/health" >/dev/null 2>&1; then break; fi
+    if sidecar_is_healthy; then break; fi
     sleep 0.25
   done
-  if ! curl -fsS "$URL/api/health" >/dev/null 2>&1; then
+  if ! sidecar_is_healthy; then
     kill "$SIDECAR_PID" 2>/dev/null || true
     die "sidecar failed to become healthy on $PORT (see $APP_ROOT/logs)"
   fi

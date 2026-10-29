@@ -57,6 +57,7 @@ def test_health_and_key_roundtrip_hides_the_secret(client: TestClient):
     health = client.get("/api/health")
     assert health.status_code == 200
     assert health.json()["ok"] is True
+    assert health.json()["app"] == "grokdeck"
     assert secret not in health.text
     put = client.put("/api/key", json={"key": secret})
     assert put.json()["configured"] is True
